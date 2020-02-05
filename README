@@ -1,0 +1,120 @@
+# -*- mode: org; -*-
+#+title: Lispy-rs
+#+startup: showall
+
+* Introduction
+=Lispy-rs= is my attempt to follow the absolutely amazing [[http://www.buildyourownlisp.com/][BuildYourOwnLisp]] book solely for education purposes.
+I know there exists another, cool project: [[https://github.com/deciduously/blispr][blispr]], however I decided not to follow it and do everything
+from scratch by myself (again, for education purposes). In case some type names seem similar - it's
+mostly due to both Blispr and Lispy-rs following the book type naming.
+
+This implementation follows the book and loosely the code style where it makes sense. Due to Rust being
+newer and more advanced language than C, I took liberty of using some of the Rust modern features such as enums,
+/Result/ for error handling, etc.
+
+At the moment, I've read and implemented everything (except some bonus excercises) up until Ch.14. I plan to
+continue working on this project and hope to reach the end of this great book.
+
+* Dependencies
+  - Stable Rust
+  - [[https://pest.rs/][Pest]]. Parsing expression grammar parser for =Lispy='s grammar;
+  - [[https://crates.io/crates/rustyline/][Rustyline]]. For =Lispy='s REPL implementation;
+  - [[https://docs.rs/env_logger/0.7.1/env_logger/][env_logger]] and [[https://docs.rs/log/0.4.10/log/][log]]. For logging :)
+
+* Building
+  Just run ~cargo build~.
+
+* Running
+  Just run ~cargo run~. This will get you into =Lispy='s REPL.
+  The list of supported built-ins:
+  - +,-,*,/,%,^,min,max. Mathematical operators;
+  - /list/. Creates a list from provided arguments;
+  - /join/. Takes two lists and joins them together;
+  - /tail/. Takes a list as an argument and returns everything but the first element;
+  - /head/. Takes a list as an argument and returns the first element;
+  - /init/. Takes a list as an argument and returns everything but the final element;
+  - /len/. Takes a list as an argument and returns its length;
+  - /cons/. Takes two arguments and constructs a new Q-Expression made of those arguments;
+  - /eval/. Takes a Q-Expression and evaluates it;
+  - /=/. Define a variable in the local environment;
+  - /def/. Define a variable in the global environment;
+  - \\. Define a =lambda= function;
+  - /fun/. Define a function in the global environment;
+  - /==, !=, >, <, >=, <=/. Comparison operators;
+  - /if/. Conditional operator;
+  - ||, &&, !. Logical operators;
+  - /exit/. A special function that will terminate the REPL.
+
+  Those built-in should be enough to define your own functions and play around. The list will be updated as I implement
+  more.
+** Examples
+   #+name: add
+   #+begin_example
+   lispy> + 1 2
+   3
+   #+end_example
+
+   #+name: head
+   #+begin_example
+   lispy> head {1 2}
+   {1}
+   #+end_example
+
+   #+name: Fibonacci Nth number
+   #+begin_example
+   fun {fib N} \
+   { \ 
+     if (== 0 N) \
+        {0} \
+        { \
+          if (== 1 N) \
+             {1} \
+             {+ (fib (- N 1)) (fib (- N 2))} \
+        } \
+    }
+   #+end_example
+
+   #+name: Partial evaluation
+   #+begin_example
+   lispy> fun {add-together x y} {+ x y}
+   ()
+   lispy> def {add1} (add-together 1)
+   ()
+   lispy> add1 2
+   3
+   #+end_example
+
+   #+name: Currying
+   #+begin_example
+   lispy> fun {curry f xs} {eval (join (list f) xs)}
+   ()
+   lispy> curry + {5 6 7}
+   18
+   lispy> fun {uncurry f & xs} {f xs}
+   ()
+   lispy> uncurry head 5 6 7
+   {5}
+   #+end_example
+
+   #+name: List reverse
+   #+begin_example
+   lispy> (fun {reverse l} {
+   if (== l {})
+   {{}}
+   {join (reverse (tail l)) (head l)}
+   })
+   ()
+   lispy> reverse {1 2 3}
+   {3 2 1}
+   lispy> reverse 1
+   ERROR: tail passed invalid type. Expected Lval::QExpr(_). Given 1!
+   #+end_example
+
+* Benchmarking
+  I decided to play with [[https://docs.rs/criterion/0.3.1/criterion/][Criterion]] to benchmark my implementation(s) of the =Lval= type. It's in a very infant state (even more than the rest of the project).
+
+* TODOs
+  - Add floating point support. At the moment logic around integers is a bit flaky. I used the biggest signed integer type to represent number, but this has to be revisited too;
+  - I skipped certain bonus points to speed up the development. Some of them are very interesting and should be added;
+  - The whole jazz with =LEnv= and wrapping it into =Rc<RefCell<>>= should be revisited too;
+  - ... . More to come.

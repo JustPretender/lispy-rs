@@ -1,0 +1,9 @@
+number = @{ int }
+int = { ("+" | "-")? ~ ASCII_DIGIT+ }
+op = _{"+" | "-" | "*" | "/" | "%" | "^" | "\\"| ("<" | ">" | "=" | "!") ~ ("=")? | "!" | "||" | "&&"}
+symbol = @{op | "&" | (ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_" | "-")*) }
+expr = _{ number | symbol | sexpr | qexpr }
+sexpr = { "(" ~ expr* ~ ")" }
+qexpr = { "{" ~ expr* ~ "}" }
+lispy = _{ SOI ~ expr+ ~ EOI }
+WHITESPACE = _{ " " | "\t" }
