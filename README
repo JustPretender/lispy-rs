@@ -109,12 +109,15 @@ continue working on this project and hope to reach the end of this great book.
    lispy> reverse 1
    ERROR: tail passed invalid type. Expected Lval::QExpr(_). Given 1!
    #+end_example
+* Debugging
+  Run ~RUST_LOG="info,lispy_rs::lispy=debug" cargo run~. In this mode =Lispy= will print debug messages that should help you to find out what's going. It's necesserily easy due to
+  the recursive nature of LISPs.
 
 * Benchmarking
   I decided to play with [[https://docs.rs/criterion/0.3.1/criterion/][Criterion]] to benchmark my implementation(s) of the =Lval= type. It's in a very infant state (even more than the rest of the project).
 
 * TODOs
   - Add floating point support. At the moment logic around integers is a bit flaky. I used the biggest signed integer type to represent number, but this has to be revisited too;
+  - Figure out how to use the /=/ operator. The book doesn't really covers that with examples.
   - I skipped certain bonus points to speed up the development. Some of them are very interesting and should be added;
   - The whole jazz with =LEnv= and wrapping it into =Rc<RefCell<>>= should be revisited too;
-  - ... . More to come.
