@@ -2,6 +2,8 @@
 #+title: Lispy-rs
 #+startup: showall
 
+[[https://github.com/JustPretender/lispy-rs/workflows/Rust/badge.svg?branch=master][https://github.com/JustPretender/lispy-rs/workflows/Rust/badge.svg]]
+
 * Introduction
 =Lispy-rs= is my attempt to follow the absolutely amazing [[http://www.buildyourownlisp.com/][BuildYourOwnLisp]] book solely for education purposes.
 I know there exists another, cool project: [[https://github.com/deciduously/blispr][blispr]], however I decided not to follow it and do everything
