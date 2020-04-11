@@ -235,13 +235,13 @@ macro_rules! lassert_not_empty {
 
 /// Checks if lval is of expected type
 macro_rules! lassert_type {
-    ($name:expr, $lval:ident, $type:pat ) => {
+    ($name:expr, $lval:ident, $($type:pat)|+ ) => {
         match &$lval {
-            $type => {}
+            $($type)|+ => {}
             _ => {
                 return Err(LispyError::InvalidType(
                     $name,
-                    stringify!($type),
+                    stringify!($($type)|+),
                     $lval.to_string(),
                 ))
             }
@@ -259,6 +259,7 @@ pub enum LvalFun {
 /// Represents Lispy value. The main data structure our Lispy is built on.
 #[derive(Clone, PartialEq)]
 pub enum Lval {
+    Boolean(bool),
     Number(i64),
     Symbol(String),
     Fun(LvalFun),
@@ -270,6 +271,7 @@ pub enum Lval {
 impl fmt::Display for Lval {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self {
+            Lval::Boolean(x) => write!(f, "{}", x),
             Lval::Number(x) => write!(f, "{}", x),
             Lval::Symbol(sym) => write!(f, "{}", sym),
             Lval::Fun(LvalFun::Builtin(builtin)) => write!(f, "<builtin>: {}", builtin.name),
@@ -487,6 +489,30 @@ impl Lval {
             formals: Box::new(formals),
             body: Box::new(body),
         }))
+    }
+
+    /// Constructs a new `Lval` holding a `bool` value
+    pub fn boolean(val: bool) -> Lval {
+        Lval::Boolean(val)
+    }
+
+    /// Returns a reference to the underlying `bool` representation if the type is
+    /// `Lval::Boolean`. Will panic otherwise.
+    fn as_boolean(&self) -> &bool {
+        match self {
+            Lval::Boolean(val) => val,
+            _ => unreachable!(),
+        }
+    }
+
+    /// Converts this `Lval` into a boolean, In case `self` is a boolean or a number
+    /// - panics.
+    fn into_boolean(self) -> Lval {
+        match self {
+            Lval::Boolean(_) => self,
+            Lval::Number(num) => Lval::boolean(num != 0),
+            _ => unreachable!(),
+        }
     }
 }
 
@@ -784,10 +810,10 @@ fn builtin_ord(mut lval: Lval, ord: &'static str) -> Result<Lval> {
     let second = second.as_number();
 
     match ord {
-        ">" => Ok(Lval::number((first > second) as i64)),
-        "<" => Ok(Lval::number((first < second) as i64)),
-        ">=" => Ok(Lval::number((first >= second) as i64)),
-        "<=" => Ok(Lval::number((first <= second) as i64)),
+        ">" => Ok(Lval::boolean(first > second)),
+        "<" => Ok(Lval::boolean(first < second)),
+        ">=" => Ok(Lval::boolean(first >= second)),
+        "<=" => Ok(Lval::boolean(first <= second)),
         _ => unreachable!(),
     }
 }
@@ -809,8 +835,8 @@ fn builtin_cmp(mut lval: Lval, op: &'static str) -> Result<Lval> {
     let second = lval.pop(0);
 
     match op {
-        "==" => Ok(Lval::number((first == second) as i64)),
-        "!=" => Ok(Lval::number((first != second) as i64)),
+        "==" => Ok(Lval::boolean(first == second)),
+        "!=" => Ok(Lval::boolean(first != second)),
         _ => unreachable!(),
     }
 }
@@ -823,11 +849,12 @@ pub fn builtin_if(mut lval: Lval, env: &mut SharedEnv) -> Result<Lval> {
     let on_true = lval.pop(0);
     let on_false = lval.pop(0);
 
-    lassert_type!("if", cond, Lval::Number(_));
+    lassert_type!("if", cond, Lval::Number(_) | Lval::Boolean(_));
     lassert_type!("if", on_true, Lval::QExpr(_));
     lassert_type!("if", on_false, Lval::QExpr(_));
 
-    if cond.as_number() != &0i64 {
+    let cond = cond.into_boolean();
+    if *cond.as_boolean() {
         on_true.into_sexpr().eval(env)
     } else {
         on_false.into_sexpr().eval(env)
@@ -841,15 +868,15 @@ pub fn builtin_or(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
 
     while !lval.is_empty() {
         let cond = lval.pop(0);
-        lassert_type!("or", cond, Lval::Number(_));
+        lassert_type!("or", cond, Lval::Number(_) | Lval::Boolean(_));
 
-        let cond = cond.as_number() != &0i64;
-        if cond {
-            return Ok(Lval::number(cond as i64));
+        let cond = cond.into_boolean();
+        if *cond.as_boolean() {
+            return Ok(cond);
         }
     }
 
-    Ok(Lval::number(false as i64))
+    Ok(Lval::boolean(false))
 }
 
 /// Returns Lval::Number(1.0) if both of the two operands, provided in `lval`, evaluate
@@ -859,15 +886,15 @@ pub fn builtin_and(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
 
     while !lval.is_empty() {
         let cond = lval.pop(0);
-        lassert_type!("and", cond, Lval::Number(_));
+        lassert_type!("and", cond, Lval::Number(_) | Lval::Boolean(_));
 
-        let cond = cond.as_number() != &0i64;
-        if !cond {
-            return Ok(Lval::Number(cond as i64));
+        let cond = cond.into_boolean();
+        if !*cond.as_boolean() {
+            return Ok(cond);
         }
     }
 
-    Ok(Lval::Number(true as i64))
+    Ok(Lval::boolean(true))
 }
 
 /// Returns a new `Lval` that reverses the logical state of the operand, provided in `lval`
@@ -875,11 +902,11 @@ pub fn builtin_not(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     lassert_num!("!", lval, 1);
 
     let cond = lval.pop(0);
-    lassert_type!("!", cond, Lval::Number(_));
+    lassert_type!("!", cond, Lval::Number(_) | Lval::Boolean(_));
 
-    let cond = cond.as_number() != &0i64;
+    let cond = !cond.into_boolean().as_boolean();
 
-    Ok(Lval::Number(!cond as i64))
+    Ok(Lval::boolean(cond))
 }
 
 /// Registers all supported built-in functions and types into the provided environment.
@@ -916,8 +943,8 @@ pub fn add_builtins(lenv: &mut LEnv) {
     lenv.add_builtin("!", builtin_not);
 
     lenv.put("exit", Lval::Exit);
-    lenv.put("true", Lval::number(1));
-    lenv.put("false", Lval::number(0));
+    lenv.put("true", Lval::boolean(true));
+    lenv.put("false", Lval::boolean(false));
 }
 
 #[cfg(test)]
@@ -1248,14 +1275,16 @@ mod tests {
         let mut env = LEnv::new_shared();
         let args = Lval::qexpr().add(Lval::number(2)).add(Lval::number(1));
 
-        assert_eq!(builtin_gt(args.clone(), &mut env), Ok(Lval::number(1)));
-        assert_eq!(builtin_lt(args.clone(), &mut env), Ok(Lval::number(0)));
-        assert_eq!(builtin_ge(args.clone(), &mut env), Ok(Lval::number(1)));
-        assert_eq!(builtin_le(args.clone(), &mut env), Ok(Lval::number(0)));
+        assert_eq!(builtin_gt(args.clone(), &mut env), Ok(Lval::boolean(true)));
+        assert_eq!(builtin_lt(args.clone(), &mut env), Ok(Lval::boolean(false)));
+        assert_eq!(builtin_ge(args.clone(), &mut env), Ok(Lval::boolean(true)));
+        assert_eq!(builtin_le(args.clone(), &mut env), Ok(Lval::boolean(false)));
 
         assert!(matches!(
             builtin_ge(
-                Lval::qexpr().add(Lval::symbol("x")).add(Lval::number(1)),
+                Lval::qexpr()
+                    .add(Lval::symbol("x"))
+                    .add(Lval::boolean(true)),
                 &mut env
             ),
             Err(LispyError::InvalidType(">=", _, _))
@@ -1271,21 +1300,21 @@ mod tests {
                 Lval::qexpr().add(Lval::qexpr()).add(Lval::qexpr()),
                 &mut env
             ),
-            Ok(Lval::number(1))
+            Ok(Lval::boolean(true))
         );
         assert_eq!(
             builtin_eq(
                 Lval::qexpr().add(Lval::symbol("x")).add(Lval::symbol("x")),
                 &mut env
             ),
-            Ok(Lval::number(1))
+            Ok(Lval::boolean(true))
         );
         assert_eq!(
             builtin_eq(
                 Lval::qexpr().add(Lval::number(5)).add(Lval::number(5)),
                 &mut env
             ),
-            Ok(Lval::number(1))
+            Ok(Lval::boolean(true))
         );
 
         assert_eq!(
@@ -1293,14 +1322,14 @@ mod tests {
                 Lval::qexpr().add(Lval::number(1)).add(Lval::number(2)),
                 &mut env
             ),
-            Ok(Lval::Number(1))
+            Ok(Lval::boolean(true))
         );
         assert_eq!(
             builtin_ne(
                 Lval::qexpr().add(Lval::symbol("x")).add(Lval::number(2)),
                 &mut env
             ),
-            Ok(Lval::Number(1))
+            Ok(Lval::boolean(true))
         );
 
         assert!(matches!(
@@ -1346,17 +1375,17 @@ mod tests {
                     .add(Lval::number(true as i64)),
                 &mut env
             ),
-            Ok(Lval::number(true as i64))
+            Ok(Lval::boolean(true))
         );
 
         assert_eq!(
             builtin_or(
                 Lval::qexpr()
-                    .add(Lval::number(false as i64))
-                    .add(Lval::number(false as i64)),
+                    .add(Lval::boolean(false))
+                    .add(Lval::boolean(false)),
                 &mut env
             ),
-            Ok(Lval::number(false as i64))
+            Ok(Lval::boolean(false))
         );
     }
 
@@ -1376,17 +1405,17 @@ mod tests {
                     .add(Lval::number(true as i64)),
                 &mut env
             ),
-            Ok(Lval::number(true as i64))
+            Ok(Lval::boolean(true))
         );
 
         assert_eq!(
             builtin_and(
                 Lval::qexpr()
-                    .add(Lval::number(true as i64))
-                    .add(Lval::number(false as i64)),
+                    .add(Lval::boolean(true))
+                    .add(Lval::boolean(false)),
                 &mut env
             ),
-            Ok(Lval::number(false as i64))
+            Ok(Lval::boolean(false))
         );
     }
 
@@ -1405,8 +1434,8 @@ mod tests {
         ));
 
         assert_eq!(
-            builtin_not(Lval::qexpr().add(Lval::number(true as i64)), &mut env),
-            Ok(Lval::number(false as i64))
+            builtin_not(Lval::qexpr().add(Lval::boolean(true)), &mut env),
+            Ok(Lval::boolean(false))
         );
     }
 

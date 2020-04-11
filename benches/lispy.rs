@@ -112,7 +112,7 @@ fn bench_builtins(c: &mut Criterion) {
         bench.iter(|| {
             builtin_if(
                 Lval::QExpr(vec![
-                    Lval::Number(true as i64),
+                    Lval::boolean(true),
                     Lval::QExpr(vec![Lval::Number(42)]),
                     Lval::QExpr(vec![]),
                 ]),
@@ -124,7 +124,7 @@ fn bench_builtins(c: &mut Criterion) {
     c.bench_function("builtin_or", |bench| {
         bench.iter(|| {
             builtin_or(
-                Lval::QExpr(vec![Lval::Number(false as i64), Lval::Number(true as i64)]),
+                Lval::QExpr(vec![Lval::boolean(false), Lval::boolean(true)]),
                 &mut env,
             )
         })
@@ -133,14 +133,14 @@ fn bench_builtins(c: &mut Criterion) {
     c.bench_function("builtin_and", |bench| {
         bench.iter(|| {
             builtin_and(
-                Lval::QExpr(vec![Lval::Number(false as i64), Lval::Number(true as i64)]),
+                Lval::QExpr(vec![Lval::boolean(false), Lval::boolean(true)]),
                 &mut env,
             )
         })
     });
 
     c.bench_function("builtin_not", |bench| {
-        bench.iter(|| builtin_not(Lval::QExpr(vec![Lval::Number(true as i64)]), &mut env))
+        bench.iter(|| builtin_not(Lval::QExpr(vec![Lval::boolean(true)]), &mut env))
     });
 }
 
