@@ -3,9 +3,7 @@ use std::rc::Rc;
 
 extern crate rustyline;
 use rustyline::error::ReadlineError;
-use rustyline::validate::{ValidationContext, ValidationResult, Validator};
 use rustyline::Editor;
-use rustyline_derive::{Completer, Helper, Highlighter, Hinter};
 
 extern crate pest;
 #[macro_use]
@@ -19,23 +17,6 @@ extern crate log;
 use ::lispy_rs::error::*;
 use ::lispy_rs::lispy::*;
 use ::lispy_rs::*;
-
-#[derive(Completer, Helper, Highlighter, Hinter)]
-struct InputValidator {}
-
-impl Validator for InputValidator {
-    fn validate(
-        &self,
-        ctx: &mut ValidationContext,
-    ) -> std::result::Result<ValidationResult, ReadlineError> {
-        let input = ctx.input();
-        if input.ends_with('\\') {
-            Ok(ValidationResult::Incomplete)
-        } else {
-            Ok(ValidationResult::Valid(None))
-        }
-    }
-}
 
 #[derive(Parser)]
 #[grammar = "lisp-rs.pest"]
@@ -72,8 +53,7 @@ fn main() -> Result<()> {
     info!("Lispy version 0.0.1");
     info!("Press Ctrl-C to Exit");
 
-    let mut rl = Editor::new();
-    rl.set_helper(Some(InputValidator {}));
+    let mut rl = Editor::<()>::new();
 
     if rl.load_history("history.txt").is_err() {
         info!("No previous history.");
@@ -110,10 +90,9 @@ fn main() -> Result<()> {
             line.insert(line.len(), ')');
         }
 
-        // Remove '\' and '\n' from the multiline input. Don't think it's very
+        // Remove '\n' from the multiline input. Don't think it's very
         // efficient because it creates a copy but we don't care about this
         // in repl.
-        line = line.replace("\\", "");
         line = line.replace("\n", "");
 
         let result = parse(line.as_str())

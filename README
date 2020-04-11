@@ -65,15 +65,15 @@ continue working on this project and hope to reach the end of this great book.
 
    #+name: Fibonacci Nth number
    #+begin_example
-   fun {fib N} \
-   { \ 
-     if (== 0 N) \
-        {0} \
-        { \
-          if (== 1 N) \
-             {1} \
-             {+ (fib (- N 1)) (fib (- N 2))} \
-        } \
+   fun {fib N}
+   {
+     if (== 0 N)
+        {0}
+        {
+          if (== 1 N)
+             {1}
+             {+ (fib (- N 1)) (fib (- N 2))}
+        }
     }
    #+end_example
 
@@ -124,4 +124,5 @@ continue working on this project and hope to reach the end of this great book.
   - Figure out how to use the /=/ operator. The book doesn't really covers that with examples.
   - I skipped certain bonus points to speed up the development. Some of them are very interesting and should be added;
   - The whole jazz with =LEnv= and wrapping it into =Rc<RefCell<>>= should be revisited too;
-  - I'm currently using a lot of ~as_<type>()~ methods. I believe there should be an easier way (type coersion?).
+  - I'm currently using a lot of ~as_<type>()~ methods. I believe there should be an easier way (type coersion?);
+  - Add proper multi-line support.
