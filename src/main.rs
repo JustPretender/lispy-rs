@@ -31,13 +31,13 @@ fn build_ast(pair: Pair<Rule>) -> Result<Lval> {
     match rule {
         Rule::number => Ok(Lval::Number(pair.as_str().parse::<i64>()?)),
         Rule::symbol => Ok(Lval::Symbol(pair.as_str().to_owned())),
-        Rule::sexpr | Rule::qexpr => {
+        Rule::sexpr | Rule::qexpr | Rule::lispy => {
             let mut cells = vec![];
             for inner_pair in pair.into_inner() {
                 cells.push(build_ast(inner_pair)?);
             }
 
-            if rule == Rule::sexpr {
+            if rule == Rule::sexpr || rule == Rule::lispy {
                 Ok(Lval::SExpr(cells))
             } else {
                 Ok(Lval::QExpr(cells))
@@ -81,13 +81,6 @@ fn main() -> Result<()> {
         // Ignore empty inputs
         if line.is_empty() {
             continue;
-        }
-
-        // If input starts from a letter - then it's an S-Expression
-        // so wrap it into '()'
-        if !line.chars().next().unwrap().is_ascii_digit() {
-            line.insert(0, '(');
-            line.insert(line.len(), ')');
         }
 
         // Remove '\n' from the multiline input. Don't think it's very
