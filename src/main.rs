@@ -28,7 +28,7 @@ fn headless(files: Vec<String>, env: &mut Rc<RefCell<LEnv>>) -> Result<()> {
 
 /// Enters a Lispy REPL
 fn repl(env: &mut Rc<RefCell<LEnv>>) -> Result<()> {
-    info!("Lispy version 0.0.1");
+    info!("Lispy version {}", env!("CARGO_PKG_VERSION"));
     info!("Press Ctrl-C to Exit");
 
     let mut rl = Editor::<()>::new();
