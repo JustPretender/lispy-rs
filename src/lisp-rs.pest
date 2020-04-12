@@ -2,10 +2,12 @@ number = @{ int }
 int = { ("+" | "-")? ~ ASCII_DIGIT+ }
 op = _{"+" | "-" | "*" | "/" | "%" | "^" | ("<" | ">" | "=" | "!") ~ ("=")? | "!" | "||" | "&&"}
 symbol = @{op | "&" | "\\" | "_" | (ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_" | "-")*) }
-expr = _{ number | symbol | sexpr | qexpr }
+string = @{ "\"" ~ (("\\" ~ ANY) | (!"\"" ~ ANY))* ~ "\"" }
+expr = _{ number | symbol | sexpr | qexpr | string }
 sexpr = { "(" ~ expr* ~ ")" }
 qexpr = { "{" ~ expr* ~ "}" }
 lispy = { soi ~ expr* ~ eoi }
 soi = _{ SOI }
 eoi = _{ !ANY }
 WHITESPACE = _{ " " | "\t" }
+COMMENT = _{ ";" ~ (!NEWLINE ~ ANY)* }

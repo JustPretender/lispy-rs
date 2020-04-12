@@ -262,6 +262,7 @@ pub enum Lval {
     Boolean(bool),
     Number(i64),
     Symbol(String),
+    String(String),
     Fun(LvalFun),
     SExpr(Vec<Lval>),
     QExpr(Vec<Lval>),
@@ -274,6 +275,7 @@ impl fmt::Display for Lval {
             Lval::Boolean(x) => write!(f, "{}", x),
             Lval::Number(x) => write!(f, "{}", x),
             Lval::Symbol(sym) => write!(f, "{}", sym),
+            Lval::String(string) => write!(f, "\"{}\"", string),
             Lval::Fun(LvalFun::Builtin(builtin)) => write!(f, "<builtin>: {}", builtin.name),
             Lval::Fun(LvalFun::Lambda(lambda)) => write!(f, "(lambda \nbody: {})", lambda.body),
             Lval::SExpr(v) => {
@@ -511,6 +513,21 @@ impl Lval {
         match self {
             Lval::Boolean(_) => self,
             Lval::Number(num) => Lval::boolean(num != 0),
+            _ => unreachable!(),
+        }
+    }
+
+    /// Constructs a new `Lval` holding a string
+    pub fn string(string: &str) -> Lval {
+        Lval::String(string.to_owned())
+    }
+
+    /// Returns a reference to the underlying `String` representation if the type
+    /// is `Lval::String`. Will panic otherwise.
+    #[allow(dead_code)]
+    fn as_string(&self) -> &String {
+        match self {
+            Lval::String(string) => string,
             _ => unreachable!(),
         }
     }

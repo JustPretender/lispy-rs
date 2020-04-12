@@ -31,6 +31,11 @@ fn build_ast(pair: Pair<Rule>) -> Result<Lval> {
     match rule {
         Rule::number => Ok(Lval::Number(pair.as_str().parse::<i64>()?)),
         Rule::symbol => Ok(Lval::Symbol(pair.as_str().to_owned())),
+        Rule::string => {
+            let quoted = pair.as_str();
+            // Strip "" and construct an Lval
+            Ok(Lval::string(&quoted[1..quoted.len() - 1]))
+        }
         Rule::sexpr | Rule::qexpr | Rule::lispy => {
             let mut cells = vec![];
             for inner_pair in pair.into_inner() {
