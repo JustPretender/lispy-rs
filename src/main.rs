@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     loop {
         // We should first check if were interrupted by the user
         // and treat it as a special non-error case
-        let mut line = {
+        let line = {
             let read = rl.readline("lispy> ");
             match read {
                 Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => break,
@@ -47,11 +47,6 @@ fn main() -> Result<()> {
         if line.is_empty() {
             continue;
         }
-
-        // Remove '\n' from the multiline input. Don't think it's very
-        // efficient because it creates a copy but we don't care about this
-        // in repl.
-        line = line.replace("\n", "");
 
         let result = parse(line.as_str()).and_then(|result| result.eval(&mut env));
 

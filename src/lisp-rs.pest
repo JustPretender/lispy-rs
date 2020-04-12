@@ -9,5 +9,5 @@ qexpr = { "{" ~ expr* ~ "}" }
 lispy = { soi ~ expr* ~ eoi }
 soi = _{ SOI }
 eoi = _{ !ANY }
-WHITESPACE = _{ " " | "\t" }
+WHITESPACE = _{ " " | "\t" | NEWLINE }
 COMMENT = _{ ";" ~ (!NEWLINE ~ ANY)* }
