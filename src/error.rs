@@ -28,6 +28,8 @@ pub enum LispyError {
     UnboundSymbol(String),
     /// Lispy built-in failed an I/O operation
     IoError(String),
+    /// Result of "error" built-in
+    BuiltinError(String),
 }
 
 impl fmt::Display for LispyError {
@@ -51,6 +53,7 @@ impl fmt::Display for LispyError {
             LispyError::EmptyList(func) => write!(f, "{} passed an empty list!", func),
             LispyError::UnboundSymbol(symbol) => write!(f, "Unbound symbol: {}!", symbol),
             LispyError::IoError(e) => write!(f, "IO Error: {}!", e),
+            LispyError::BuiltinError(e) => write!(f, "Error: {}!", e),
         }
     }
 }

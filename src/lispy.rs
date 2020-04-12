@@ -954,6 +954,15 @@ pub fn builtin_print(lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     Ok(Lval::sexpr())
 }
 
+/// Constructs an error from the first argument and returns it.
+pub fn builtin_error(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
+    lassert_num!("error", lval, 1);
+    let string = lval.pop(0);
+    lassert_type!("error", string, Lval::String(_));
+
+    Err(LispyError::BuiltinError(string.as_string().to_string()))
+}
+
 /// Registers all supported built-in functions and types into the provided environment.
 pub fn add_builtins(lenv: &mut LEnv) {
     lenv.add_builtin("list", builtin_list);
@@ -988,6 +997,7 @@ pub fn add_builtins(lenv: &mut LEnv) {
     lenv.add_builtin("!", builtin_not);
     lenv.add_builtin("load", builtin_load);
     lenv.add_builtin("print", builtin_print);
+    lenv.add_builtin("error", builtin_error);
 
     lenv.put("exit", Lval::Exit);
     lenv.put("true", Lval::boolean(true));
