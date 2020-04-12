@@ -14,8 +14,8 @@ This implementation follows the book and loosely the code style where it makes s
 newer and more advanced language than C, I took liberty of using some of the Rust modern features such as enums,
 /Result/ for error handling, etc.
 
-At the moment, I've read and implemented everything (except some bonus excercises) up until Ch.14. I plan to
-continue working on this project and hope to reach the end of this great book.
+* Status
+  *Completed ch.14* (without bonus marks). Stay tuned.
 
 * Dependencies
   - Stable Rust
@@ -29,41 +29,44 @@ continue working on this project and hope to reach the end of this great book.
 * Running
   Just run ~cargo run~. This will get you into =Lispy='s REPL.
   The list of supported built-ins:
-  - +,-,*,/,%,^,min,max. Mathematical operators;
-  - /list/. Creates a list from provided arguments;
-  - /join/. Takes two lists and joins them together;
-  - /tail/. Takes a list as an argument and returns everything but the first element;
-  - /head/. Takes a list as an argument and returns the first element;
-  - /init/. Takes a list as an argument and returns everything but the final element;
-  - /len/. Takes a list as an argument and returns its length;
-  - /cons/. Takes two arguments and constructs a new Q-Expression made of those arguments;
-  - /eval/. Takes a Q-Expression and evaluates it;
-  - /=/. Define a variable in the local environment;
-  - /def/. Define a variable in the global environment;
-  - \\. Define a =lambda= function;
-  - /fun/. Define a function in the global environment;
-  - /==, !=, >, <, >=, <=/. Comparison operators;
-  - /if/. Conditional operator;
-  - ||, &&, !. Logical operators;
-  - /exit/. A special function that will terminate the REPL;
-  - /false,true/. Built-in boolean variables.
+  - =+,-,*,/,%,^,min,max=. Mathematical operators;
+  - =list=. Creates a list from provided arguments;
+  - =join=. Takes two lists and joins them together;
+  - =tail=. Takes a list as an argument and returns everything but the first element;
+  - =head=. Takes a list as an argument and returns the first element;
+  - =init=. Takes a list as an argument and returns everything but the final element;
+  - =len=. Takes a list as an argument and returns its length;
+  - =cons=. Takes two arguments and constructs a new Q-Expression made of those arguments;
+  - =eval=. Takes a Q-Expression and evaluates it;
+  - =. Define a variable in the local environment;
+  - =def=. Define a variable in the global environment;
+  - =\\=. Define a =lambda= function;
+  - =fun=. Define a function in the global environment;
+  - ==, !=, >, <, >=, <=. Comparison operators;
+  - =if=. Conditional operator;
+  - =||, &&, !=. Logical operators;
+  - =exit=. A special function that will terminate the REPL;
+  - =false,true=. Built-in boolean variables;
+  - =load=. Loads and executes code from files;
+  - =print=. Prints all its arguments into /stdout/;
+  - =error=. Converts its first argument into an error;
 
   Those built-in should be enough to define your own functions and play around. The list will be updated as I implement
-  more.
+  more (especially bonus marks).
 ** Examples
-   #+name: add
+   Addition
    #+begin_example
    lispy> + 1 2
    3
    #+end_example
 
-   #+name: head
+   List head
    #+begin_example
    lispy> head {1 2}
    {1}
    #+end_example
 
-   #+name: Fibonacci Nth number
+   Nth Fibonacci number
    #+begin_example
    fun {fib N}
    {
@@ -77,7 +80,7 @@ continue working on this project and hope to reach the end of this great book.
     }
    #+end_example
 
-   #+name: Partial evaluation
+   Partial evaluation
    #+begin_example
    lispy> fun {add-together x y} {+ x y}
    ()
@@ -87,7 +90,7 @@ continue working on this project and hope to reach the end of this great book.
    3
    #+end_example
 
-   #+name: Currying
+   Currying
    #+begin_example
    lispy> fun {curry f xs} {eval (join (list f) xs)}
    ()
@@ -99,7 +102,7 @@ continue working on this project and hope to reach the end of this great book.
    {5}
    #+end_example
 
-   #+name: List reverse
+   List reversal
    #+begin_example
    lispy> (fun {reverse l} {
    if (== l {})
@@ -112,17 +115,25 @@ continue working on this project and hope to reach the end of this great book.
    lispy> reverse 1
    ERROR: tail passed invalid type. Expected Lval::QExpr(_). Given 1!
    #+end_example
+
+   File evaluation
+   #+begin_example
+   ~# echo "(print (* (eval (head {1 2 3})) (eval (head {4 5 6}))))" > test.lspy
+   ~# lispy-rs test.lspy
+   4
+   #+end_example
 * Debugging
-  Run ~RUST_LOG="info,lispy_rs::lispy=debug" cargo run~. In this mode =Lispy= will print debug messages that should help you to find out what's going. It's necesserily easy due to
-  the recursive nature of LISPs.
+  Run ~RUST_LOG="info,lispy_rs::lispy=debug" cargo run~. In this mode =Lispy= will print debug messages that should help you to find out what's going. It's not necesserily easy due to
+  its recursive nature.
 
 * Benchmarking
   I decided to play with [[https://docs.rs/criterion/0.3.1/criterion/][Criterion]] to benchmark my implementation(s) of the =Lval= type. It's in a very infant state (even more than the rest of the project).
 
-* TODOs
-  - Add floating point support. At the moment logic around integers is a bit flaky. I used the biggest signed integer type to represent number, but this has to be revisited too;
-  - Figure out how to use the /=/ operator. The book doesn't really covers that with examples.
-  - I skipped certain bonus points to speed up the development. Some of them are very interesting and should be added;
-  - The whole jazz with =LEnv= and wrapping it into =Rc<RefCell<>>= should be revisited too;
-  - I'm currently using a lot of ~as_<type>()~ methods. I believe there should be an easier way (type coersion?);
-  - Add proper multi-line support.
+* TODOs [0/7]
+  - [ ] Add floating point support. At the moment logic around integers is a bit flaky. I used the biggest signed integer type to represent number, but this has to be revisited too;
+  - [ ] Figure out how to use the /=/ operator. The book doesn't really covers that with examples (this actually comes later).
+  - [ ] I skipped certain bonus points to speed up the development. Some of them are very interesting and should be added;
+  - [ ] The whole jazz with =LEnv= and wrapping it into =Rc<RefCell<>>= should be revisited too;
+  - [ ] I'm currently using a lot of ~as_<type>()~ methods. I believe there should be an easier way (type coersion?);
+  - [ ] Add proper multi-line support;
+  - [ ] Complete bonus marks.
