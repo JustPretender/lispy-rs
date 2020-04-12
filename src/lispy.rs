@@ -627,7 +627,7 @@ pub fn builtin_init(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
 }
 
 fn builtin_op(mut lval: Lval, op: &'static str) -> Result<Lval> {
-    for index in 0..lval.len() - 1 {
+    for index in 0..lval.len() {
         let number = lval.peek(index);
         lassert_type!(op, number, Lval::Number(_));
     }
