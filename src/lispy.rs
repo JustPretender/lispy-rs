@@ -943,6 +943,17 @@ pub fn builtin_load(mut lval: Lval, env: &mut SharedEnv) -> Result<Lval> {
     Ok(Lval::sexpr())
 }
 
+/// Outputs its arguments, passed via `lval` to the stdout, using `print!()`
+pub fn builtin_print(lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
+    for index in 0..lval.len() {
+        print!("{}", lval.peek(index));
+        print!(" ");
+    }
+    println!("");
+
+    Ok(Lval::sexpr())
+}
+
 /// Registers all supported built-in functions and types into the provided environment.
 pub fn add_builtins(lenv: &mut LEnv) {
     lenv.add_builtin("list", builtin_list);
@@ -976,6 +987,7 @@ pub fn add_builtins(lenv: &mut LEnv) {
     lenv.add_builtin("&&", builtin_and);
     lenv.add_builtin("!", builtin_not);
     lenv.add_builtin("load", builtin_load);
+    lenv.add_builtin("print", builtin_print);
 
     lenv.put("exit", Lval::Exit);
     lenv.put("true", Lval::boolean(true));
