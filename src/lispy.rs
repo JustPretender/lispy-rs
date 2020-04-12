@@ -1,9 +1,11 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
+use std::fs;
 use std::rc::Rc;
 
 use crate::error::LispyError;
+use crate::parser;
 use crate::Result;
 
 // Unfortunately I didn't find a better way to share the environment
@@ -524,7 +526,6 @@ impl Lval {
 
     /// Returns a reference to the underlying `String` representation if the type
     /// is `Lval::String`. Will panic otherwise.
-    #[allow(dead_code)]
     fn as_string(&self) -> &String {
         match self {
             Lval::String(string) => string,
@@ -926,6 +927,22 @@ pub fn builtin_not(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     Ok(Lval::boolean(cond))
 }
 
+/// Loads and evaluates a file from the path, passed via `Lval`. Returns an empty S-Expression.
+pub fn builtin_load(mut lval: Lval, env: &mut SharedEnv) -> Result<Lval> {
+    lassert_num!("load", lval, 1);
+    let path = lval.pop(0);
+    lassert_type!("load", path, Lval::String(_));
+
+    let input = fs::read_to_string(path.as_string())?;
+    let mut lval = parser::parse(&input)?;
+
+    for _ in 0..lval.len() {
+        lval.pop(0).eval(env)?;
+    }
+
+    Ok(Lval::sexpr())
+}
+
 /// Registers all supported built-in functions and types into the provided environment.
 pub fn add_builtins(lenv: &mut LEnv) {
     lenv.add_builtin("list", builtin_list);
@@ -958,6 +975,7 @@ pub fn add_builtins(lenv: &mut LEnv) {
     lenv.add_builtin("||", builtin_or);
     lenv.add_builtin("&&", builtin_and);
     lenv.add_builtin("!", builtin_not);
+    lenv.add_builtin("load", builtin_load);
 
     lenv.put("exit", Lval::Exit);
     lenv.put("true", Lval::boolean(true));

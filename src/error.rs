@@ -1,6 +1,7 @@
 use rustyline::error::ReadlineError;
 use std::error;
 use std::fmt;
+use std::io;
 use std::num::ParseIntError;
 
 /// The error type for Lispy errors that can arise from
@@ -25,6 +26,8 @@ pub enum LispyError {
     DivisionByZero,
     /// Lispy attempted to evaluate an unbound symbol
     UnboundSymbol(String),
+    /// Lispy built-in failed an I/O operation
+    IoError(String),
 }
 
 impl fmt::Display for LispyError {
@@ -47,6 +50,7 @@ impl fmt::Display for LispyError {
             LispyError::DivisionByZero => write!(f, "Attempted to divide by 0!"),
             LispyError::EmptyList(func) => write!(f, "{} passed an empty list!", func),
             LispyError::UnboundSymbol(symbol) => write!(f, "Unbound symbol: {}!", symbol),
+            LispyError::IoError(e) => write!(f, "IO Error: {}!", e),
         }
     }
 }
@@ -67,5 +71,11 @@ impl From<ParseIntError> for LispyError {
 impl From<ReadlineError> for LispyError {
     fn from(err: ReadlineError) -> LispyError {
         LispyError::Readline(format!("{}", err))
+    }
+}
+
+impl From<io::Error> for LispyError {
+    fn from(err: io::Error) -> LispyError {
+        LispyError::IoError(err.to_string())
     }
 }
