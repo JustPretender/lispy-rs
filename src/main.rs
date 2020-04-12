@@ -5,52 +5,12 @@ extern crate rustyline;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
-extern crate pest;
-#[macro_use]
-extern crate pest_derive;
-use pest::iterators::{Pair, Pairs};
-use pest::Parser;
-
 #[macro_use]
 extern crate log;
 
-use ::lispy_rs::error::*;
 use ::lispy_rs::lispy::*;
+use ::lispy_rs::parser::*;
 use ::lispy_rs::*;
-
-#[derive(Parser)]
-#[grammar = "lisp-rs.pest"]
-struct LispyParser;
-
-fn parse(line: &str) -> Result<Pairs<Rule>> {
-    LispyParser::parse(Rule::lispy, line).map_err(|e| LispyError::Grammar(e.to_string()))
-}
-
-fn build_ast(pair: Pair<Rule>) -> Result<Lval> {
-    let rule = pair.as_rule();
-    match rule {
-        Rule::number => Ok(Lval::Number(pair.as_str().parse::<i64>()?)),
-        Rule::symbol => Ok(Lval::Symbol(pair.as_str().to_owned())),
-        Rule::string => {
-            let quoted = pair.as_str();
-            // Strip "" and construct an Lval
-            Ok(Lval::string(&quoted[1..quoted.len() - 1]))
-        }
-        Rule::sexpr | Rule::qexpr | Rule::lispy => {
-            let mut cells = vec![];
-            for inner_pair in pair.into_inner() {
-                cells.push(build_ast(inner_pair)?);
-            }
-
-            if rule == Rule::sexpr || rule == Rule::lispy {
-                Ok(Lval::SExpr(cells))
-            } else {
-                Ok(Lval::QExpr(cells))
-            }
-        }
-        _ => Err(LispyError::Grammar(format!("Unknown rule: {:?}", rule))),
-    }
-}
 
 fn main() -> Result<()> {
     env_logger::init();
@@ -93,15 +53,11 @@ fn main() -> Result<()> {
         // in repl.
         line = line.replace("\n", "");
 
-        let result = parse(line.as_str())
-            .and_then(|mut tree| {
-                build_ast(
-                    tree.next()
-                        .ok_or_else(|| LispyError::Grammar("No next token".to_owned()))?,
-                )
-            })
-            .and_then(|result| result.eval(&mut env));
+        let result = parse(line.as_str()).and_then(|result| result.eval(&mut env));
 
+        // We can't use ? operator because we don't want to treat evaluation errors as
+        // fatal. We don't want to terminate the REPL, if eval() fails - we want to
+        // print the error and continue.
         match result {
             Ok(result) => match result {
                 Lval::Exit => break,
