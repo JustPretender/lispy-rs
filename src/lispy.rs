@@ -607,16 +607,6 @@ pub fn builtin_cons(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     Ok(list)
 }
 
-/// Returns the list(Q-Expression) length
-pub fn builtin_len(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
-    lassert_num!("len", lval, 1);
-
-    let list = lval.pop(0);
-    lassert_type!("len", list, Lval::QExpr(_));
-
-    Ok(Lval::number(list.len() as i64))
-}
-
 /// Returns `lval` without the last element
 pub fn builtin_init(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     lassert_num!("init", lval, 1);
@@ -770,30 +760,6 @@ pub fn builtin_lambda(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     }
 
     Ok(Lval::lambda(formals, body))
-}
-
-/// Bounds a symbol to a lambda, described in `lval` into the global environment.
-pub fn builtin_fun(mut lval: Lval, env: &mut SharedEnv) -> Result<Lval> {
-    lassert_num!("fun", lval, 2);
-
-    let mut formals = lval.pop(0); // Retrieve the list of formal arguments
-    let body = lval.pop(0); // Retrieve the body of the future function
-
-    lassert_type!("fun", formals, Lval::QExpr(_));
-    lassert_type!("fun", body, Lval::QExpr(_));
-
-    let name = formals.pop(0); // Remove function name from it
-    lassert_type!("fun", name, Lval::Symbol(_));
-
-    // At this point we extracted function name so we can do the following:
-    // - convert formals and body into a lambda;
-    // - give this lambda the function name and store it in our environment.
-    builtin_def(
-        Lval::qexpr()
-            .add(Lval::qexpr().add(name))
-            .add(builtin_lambda(Lval::qexpr().add(formals).add(body), env)?),
-        env,
-    )
 }
 
 /// Returns `Lval::Number(1.0)` if the first number, provided in `lval` is bigger than the second.
@@ -970,7 +936,6 @@ pub fn add_builtins(lenv: &mut LEnv) {
     lenv.add_builtin("tail", builtin_tail);
     lenv.add_builtin("head", builtin_head);
     lenv.add_builtin("init", builtin_init);
-    lenv.add_builtin("len", builtin_len);
     lenv.add_builtin("cons", builtin_cons);
     lenv.add_builtin("eval", builtin_eval);
     lenv.add_builtin("+", builtin_add);
@@ -984,7 +949,6 @@ pub fn add_builtins(lenv: &mut LEnv) {
     lenv.add_builtin("=", builtin_put);
     lenv.add_builtin("def", builtin_def);
     lenv.add_builtin("\\", builtin_lambda);
-    lenv.add_builtin("fun", builtin_fun);
     lenv.add_builtin("==", builtin_eq);
     lenv.add_builtin("!=", builtin_ne);
     lenv.add_builtin(">", builtin_gt);
@@ -1000,8 +964,6 @@ pub fn add_builtins(lenv: &mut LEnv) {
     lenv.add_builtin("error", builtin_error);
 
     lenv.put("exit", Lval::Exit);
-    lenv.put("true", Lval::boolean(true));
-    lenv.put("false", Lval::boolean(false));
 }
 
 #[cfg(test)]
@@ -1153,27 +1115,6 @@ mod tests {
     }
 
     #[test]
-    fn test_builtin_len() {
-        let mut env = LEnv::new_shared();
-        let list = Lval::qexpr()
-            .add(Lval::number(1))
-            .add(Lval::number(2))
-            .add(Lval::number(3));
-        let sexpr = Lval::sexpr().add(list.clone());
-
-        assert_eq!(
-            builtin_len(sexpr, &mut env),
-            Ok(Lval::number(list.len() as i64))
-        );
-
-        let sexpr = Lval::sexpr();
-        assert!(matches!(
-            builtin_len(sexpr, &mut env),
-            Err(LispyError::InvalidArgNum("len", 1, _))
-        ));
-    }
-
-    #[test]
     fn test_builtin_init() {
         let mut env = LEnv::new_shared();
         let mut list = Lval::qexpr()
@@ -1275,53 +1216,6 @@ mod tests {
             &mut env,
         );
         if let Ok(Lval::Fun(LvalFun::Lambda(lambda))) = lambda {
-            assert_eq!(formals, *lambda.formals);
-            assert_eq!(body, *lambda.body);
-        }
-    }
-
-    #[test]
-    fn test_builtin_fun() {
-        let mut env = LEnv::new_shared();
-        let mut formals = Lval::qexpr()
-            .add(Lval::symbol("foo"))
-            .add(Lval::symbol("x"));
-        let body = Lval::qexpr().add(Lval::qexpr());
-
-        assert!(matches!(
-            builtin_fun(Lval::sexpr(), &mut env),
-            Err(LispyError::InvalidArgNum("fun", 2, _))
-        ));
-
-        // Formals should be a Q-Expression
-        assert!(matches!(
-            builtin_fun(
-                Lval::sexpr().add(Lval::number(1)).add(body.clone()),
-                &mut env
-            ),
-            Err(LispyError::InvalidType("fun", _, _))
-        ));
-
-        // Body should be a Q-Expression
-        assert!(matches!(
-            builtin_fun(
-                Lval::sexpr().add(formals.clone()).add(Lval::number(1)),
-                &mut env
-            ),
-            Err(LispyError::InvalidType("fun", _, _))
-        ));
-
-        assert_eq!(
-            builtin_fun(
-                Lval::sexpr().add(formals.clone()).add(body.clone()),
-                &mut env
-            ),
-            Ok(Lval::sexpr())
-        );
-
-        let fun = env.borrow().get("foo");
-        formals.pop(0);
-        if let Ok(Lval::Fun(LvalFun::Lambda(lambda))) = fun {
             assert_eq!(formals, *lambda.formals);
             assert_eq!(body, *lambda.body);
         }
@@ -1494,54 +1388,5 @@ mod tests {
             builtin_not(Lval::qexpr().add(Lval::boolean(true)), &mut env),
             Ok(Lval::boolean(false))
         );
-    }
-
-    #[test]
-    fn test_recursive_fun() {
-        let mut env = LEnv::new_shared();
-
-        // Add required builtins: +, ==, if and tail
-        env.borrow_mut().add_builtin("tail", builtin_tail);
-        env.borrow_mut().add_builtin("if", builtin_if);
-        env.borrow_mut().add_builtin("==", builtin_eq);
-        env.borrow_mut().add_builtin("+", builtin_add);
-
-        // A more complex example: a recursive function that calculates list length
-        let formals = Lval::qexpr()
-            .add(Lval::symbol("list_len"))
-            .add(Lval::symbol("l"));
-        let body = Lval::qexpr()
-            .add(Lval::symbol("if")) // operator if
-            .add(
-                // condition
-                Lval::sexpr()
-                    .add(Lval::symbol("=="))
-                    .add(Lval::symbol("l"))
-                    .add(Lval::qexpr()),
-            )
-            .add(Lval::qexpr().add(Lval::number(0))) // first branch: if reached the end of list
-            .add(
-                // second branch: if the list is still not empty - recurse into its tail
-                Lval::qexpr()
-                    .add(Lval::symbol("+"))
-                    .add(Lval::number(1))
-                    .add(
-                        Lval::sexpr().add(Lval::symbol("list_len")).add(
-                            Lval::sexpr()
-                                .add(Lval::symbol("tail"))
-                                .add(Lval::symbol("l")),
-                        ),
-                    ),
-            );
-        builtin_fun(Lval::sexpr().add(formals).add(body), &mut env).unwrap();
-
-        let sexpr = Lval::sexpr().add(
-            Lval::qexpr()
-                .add(env.borrow().get("list_len").unwrap())
-                .add(Lval::qexpr().add(Lval::number(1)).add(Lval::number(2))),
-        );
-        let result = builtin_eval(sexpr, &mut env);
-
-        assert_eq!(result, Ok(Lval::number(2))); // Length of the list is 2
     }
 }

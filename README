@@ -7,15 +7,15 @@
 * Introduction
 =Lispy-rs= is my attempt to follow the absolutely amazing [[http://www.buildyourownlisp.com/][BuildYourOwnLisp]] book solely for education purposes.
 I know there exists another, cool project: [[https://github.com/deciduously/blispr][blispr]], however I decided not to follow it and do everything
-from scratch by myself (again, for education purposes). In case some type names seem similar - it's
-mostly due to both Blispr and Lispy-rs following the book type naming.
+from scratch by myself (again, for education purposes). In case some things seem similar - it's mostly due to
+both Blispr and Lispy-rs following the book type naming.
 
 This implementation follows the book and loosely the code style where it makes sense. Due to Rust being
-newer and more advanced language than C, I took liberty of using some of the Rust modern features such as enums,
+newer and more advanced language than C, I took a liberty of using some of the Rust modern features such as enums,
 /Result/ for error handling, etc.
 
 * Status
-  *Completed ch.14* (without bonus marks). Stay tuned.
+  *Completed ch.15* (without bonus marks). Stay tuned.
 
 * Dependencies
   - Stable Rust
@@ -122,6 +122,8 @@ newer and more advanced language than C, I took liberty of using some of the Rus
    ~# lispy-rs test.lspy
    4
    #+end_example
+
+   For more examples just check *Ch.15* of the book. I don't see the point in copy-pasting them here.
 * Debugging
   Run ~RUST_LOG="info,lispy_rs::lispy=debug" cargo run~. In this mode =Lispy= will print debug messages that should help you to find out what's going. It's not necesserily easy due to
   its recursive nature.
@@ -129,11 +131,12 @@ newer and more advanced language than C, I took liberty of using some of the Rus
 * Benchmarking
   I decided to play with [[https://docs.rs/criterion/0.3.1/criterion/][Criterion]] to benchmark my implementation(s) of the =Lval= type. It's in a very infant state (even more than the rest of the project).
 
-* TODOs [0/7]
+* TODOs [0/8]
   - [ ] Add floating point support. At the moment logic around integers is a bit flaky. I used the biggest signed integer type to represent number, but this has to be revisited too;
   - [ ] Figure out how to use the /=/ operator. The book doesn't really covers that with examples (this actually comes later).
   - [ ] I skipped certain bonus points to speed up the development. Some of them are very interesting and should be added;
   - [ ] The whole jazz with =LEnv= and wrapping it into =Rc<RefCell<>>= should be revisited too;
   - [ ] I'm currently using a lot of ~as_<type>()~ methods. I believe there should be an easier way (type coersion?);
   - [ ] Add proper multi-line support;
-  - [ ] Complete bonus marks.
+  - [ ] Complete bonus marks;
+  - [ ] Figure out why my implementation of Fibonacci numbers, provided above, is much faster than the one in =prelude.lspy=. I guess it has something to do with how we interract with environment.

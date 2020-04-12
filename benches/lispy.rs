@@ -39,10 +39,6 @@ fn bench_builtins(c: &mut Criterion) {
         })
     });
 
-    c.bench_function("builtin_len", |bench| {
-        bench.iter(|| builtin_len(Lval::SExpr(vec![Lval::QExpr(list.clone())]), &mut env))
-    });
-
     c.bench_function("builtin_init", |bench| {
         bench.iter(|| builtin_init(Lval::SExpr(vec![Lval::QExpr(list.clone())]), &mut env))
     });
@@ -68,21 +64,6 @@ fn bench_builtins(c: &mut Criterion) {
             builtin_lambda(
                 Lval::SExpr(vec![
                     Lval::QExpr(vec![Lval::Symbol("x".to_owned())]),
-                    Lval::QExpr(vec![]),
-                ]),
-                &mut env,
-            )
-        })
-    });
-
-    c.bench_function("builtin_fun", |bench| {
-        bench.iter(|| {
-            builtin_fun(
-                Lval::SExpr(vec![
-                    Lval::QExpr(vec![
-                        Lval::Symbol("fun".to_owned()),
-                        Lval::Symbol("x".to_owned()),
-                    ]),
                     Lval::QExpr(vec![]),
                 ]),
                 &mut env,
