@@ -1,9 +1,9 @@
-number = @{ int }
+integer = @{ int }
 int = { ("+" | "-")? ~ ASCII_DIGIT+ }
 op = _{"+" | "-" | "*" | "/" | "%" | "^" | ("<" | ">" | "=" | "!") ~ ("=")? | "!" | "||" | "&&"}
 symbol = @{op | "&" | "\\" | "_" | (ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_" | "-")*) }
 string = @{ "\"" ~ (("\\" ~ ANY) | (!"\"" ~ ANY))* ~ "\"" }
-expr = _{ number | symbol | sexpr | qexpr | string }
+expr = _{ integer | symbol | sexpr | qexpr | string }
 sexpr = { "(" ~ expr* ~ ")" }
 qexpr = { "{" ~ expr* ~ "}" }
 lispy = { soi ~ expr* ~ eoi }

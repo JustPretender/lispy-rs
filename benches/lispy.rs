@@ -7,7 +7,7 @@ use ::lispy_rs::lispy::*;
 
 fn bench_builtins(c: &mut Criterion) {
     let mut env = LEnv::new_shared();
-    let list = vec![Lval::Number(1), Lval::Number(2), Lval::Number(3)];
+    let list = vec![Lval::Integer(1), Lval::Integer(2), Lval::Integer(3)];
 
     c.bench_function("builtin_list", |bench| {
         bench.iter(|| builtin_list(Lval::SExpr(list.clone()), &mut env))
@@ -33,7 +33,7 @@ fn bench_builtins(c: &mut Criterion) {
     c.bench_function("builtin_cons", |bench| {
         bench.iter(|| {
             builtin_cons(
-                Lval::SExpr(vec![Lval::Number(42), Lval::QExpr(list.clone())]),
+                Lval::SExpr(vec![Lval::Integer(42), Lval::QExpr(list.clone())]),
                 &mut env,
             )
         })
@@ -52,7 +52,7 @@ fn bench_builtins(c: &mut Criterion) {
             builtin_def(
                 Lval::SExpr(vec![
                     Lval::QExpr(vec![Lval::Symbol("x".to_owned())]),
-                    Lval::Number(42),
+                    Lval::Integer(42),
                 ]),
                 &mut env,
             )
@@ -74,7 +74,7 @@ fn bench_builtins(c: &mut Criterion) {
     c.bench_function("builtin_gt", |bench| {
         bench.iter(|| {
             builtin_gt(
-                Lval::SExpr(vec![Lval::QExpr(vec![Lval::Number(1), Lval::Number(2)])]),
+                Lval::SExpr(vec![Lval::QExpr(vec![Lval::Integer(1), Lval::Integer(2)])]),
                 &mut env,
             )
         })
@@ -83,7 +83,7 @@ fn bench_builtins(c: &mut Criterion) {
     c.bench_function("builtin_eq", |bench| {
         bench.iter(|| {
             builtin_eq(
-                Lval::QExpr(vec![Lval::Number(1), Lval::Number(2)]),
+                Lval::QExpr(vec![Lval::Integer(1), Lval::Integer(2)]),
                 &mut env,
             )
         })
@@ -94,7 +94,7 @@ fn bench_builtins(c: &mut Criterion) {
             builtin_if(
                 Lval::QExpr(vec![
                     Lval::boolean(true),
-                    Lval::QExpr(vec![Lval::Number(42)]),
+                    Lval::QExpr(vec![Lval::Integer(42)]),
                     Lval::QExpr(vec![]),
                 ]),
                 &mut env,

@@ -262,7 +262,7 @@ pub enum LvalFun {
 #[derive(Clone, PartialEq)]
 pub enum Lval {
     Boolean(bool),
-    Number(i64),
+    Integer(i64),
     Symbol(String),
     String(String),
     Fun(LvalFun),
@@ -275,7 +275,7 @@ impl fmt::Display for Lval {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self {
             Lval::Boolean(x) => write!(f, "{}", x),
-            Lval::Number(x) => write!(f, "{}", x),
+            Lval::Integer(x) => write!(f, "{}", x),
             Lval::Symbol(sym) => write!(f, "{}", sym),
             Lval::String(string) => write!(f, "\"{}\"", string),
             Lval::Fun(LvalFun::Builtin(builtin)) => write!(f, "<builtin>: {}", builtin.name),
@@ -313,10 +313,10 @@ impl fmt::Debug for Lval {
 
 impl Lval {
     /// Returns a reference to the underlying number representation if the type is
-    /// `Lval::Number`. Will panic otherwise.
-    fn as_number(&self) -> &i64 {
+    /// `Lval::Integer`. Will panic otherwise.
+    fn as_integer(&self) -> &i64 {
         match self {
-            Lval::Number(num) => num,
+            Lval::Integer(num) => num,
             _ => unreachable!(),
         }
     }
@@ -477,8 +477,8 @@ impl Lval {
     }
 
     /// Constructs a new `Lval` holding a number
-    pub fn number(num: i64) -> Lval {
-        Lval::Number(num)
+    pub fn integer(num: i64) -> Lval {
+        Lval::Integer(num)
     }
 
     /// Constructs a new `Lval` holding a built-in function
@@ -514,7 +514,7 @@ impl Lval {
     fn into_boolean(self) -> Lval {
         match self {
             Lval::Boolean(_) => self,
-            Lval::Number(num) => Lval::boolean(num != 0),
+            Lval::Integer(num) => Lval::boolean(num != 0),
             _ => unreachable!(),
         }
     }
@@ -619,17 +619,17 @@ pub fn builtin_init(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
 fn builtin_op(mut lval: Lval, op: &'static str) -> Result<Lval> {
     for index in 0..lval.len() {
         let number = lval.peek(index);
-        lassert_type!(op, number, Lval::Number(_));
+        lassert_type!(op, number, Lval::Integer(_));
     }
 
-    let mut result = *lval.pop(0).as_number();
+    let mut result = *lval.pop(0).as_integer();
 
     if op == "-" && lval.is_empty() {
         result = -result;
     }
 
     while !lval.is_empty() {
-        let next = *lval.pop(0).as_number();
+        let next = *lval.pop(0).as_integer();
 
         match op {
             "+" => {
@@ -666,7 +666,7 @@ fn builtin_op(mut lval: Lval, op: &'static str) -> Result<Lval> {
         };
     }
 
-    Ok(Lval::Number(result))
+    Ok(Lval::Integer(result))
 }
 
 /// Returns a new `Lval` that holds a sum of two numbers provided in `lval`
@@ -762,22 +762,22 @@ pub fn builtin_lambda(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     Ok(Lval::lambda(formals, body))
 }
 
-/// Returns `Lval::Number(1.0)` if the first number, provided in `lval` is bigger than the second.
+/// Returns `Lval::Integer(1.0)` if the first number, provided in `lval` is bigger than the second.
 pub fn builtin_gt(lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     builtin_ord(lval, ">")
 }
 
-/// Returns `Lval::Number(1.0)` if the first number, provided in `lval` is smaller than the second.
+/// Returns `Lval::Integer(1.0)` if the first number, provided in `lval` is smaller than the second.
 pub fn builtin_lt(lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     builtin_ord(lval, "<")
 }
 
-/// Returns `Lval::Number(1.0)` if the first number, provided in `lval` is bigger or equal than/to the second.
+/// Returns `Lval::Integer(1.0)` if the first number, provided in `lval` is bigger or equal than/to the second.
 pub fn builtin_ge(lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     builtin_ord(lval, ">=")
 }
 
-/// Returns `Lval::Number(1.0)` if the first number, provided in `lval` is less or equal than/to the second.
+/// Returns `Lval::Integer(1.0)` if the first number, provided in `lval` is less or equal than/to the second.
 pub fn builtin_le(lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     builtin_ord(lval, "<=")
 }
@@ -786,12 +786,12 @@ fn builtin_ord(mut lval: Lval, ord: &'static str) -> Result<Lval> {
     lassert_num!(ord, lval, 2);
 
     let first = lval.pop(0);
-    lassert_type!(ord, first, Lval::Number(_));
+    lassert_type!(ord, first, Lval::Integer(_));
     let second = lval.pop(0);
-    lassert_type!(ord, second, Lval::Number(_));
+    lassert_type!(ord, second, Lval::Integer(_));
 
-    let first = first.as_number();
-    let second = second.as_number();
+    let first = first.as_integer();
+    let second = second.as_integer();
 
     match ord {
         ">" => Ok(Lval::boolean(first > second)),
@@ -802,12 +802,12 @@ fn builtin_ord(mut lval: Lval, ord: &'static str) -> Result<Lval> {
     }
 }
 
-/// Returns `Lval::Number(1.0)` if the first `Lval`, provided in `lval` is equal to the second.
+/// Returns `Lval::Integer(1.0)` if the first `Lval`, provided in `lval` is equal to the second.
 pub fn builtin_eq(lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     builtin_cmp(lval, "==")
 }
 
-/// Returns `Lval::Number(1.0)` if the first `Lval`, provided in `lval` is not equal to the second.
+/// Returns `Lval::Integer(1.0)` if the first `Lval`, provided in `lval` is not equal to the second.
 pub fn builtin_ne(lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     builtin_cmp(lval, "!=")
 }
@@ -833,7 +833,7 @@ pub fn builtin_if(mut lval: Lval, env: &mut SharedEnv) -> Result<Lval> {
     let on_true = lval.pop(0);
     let on_false = lval.pop(0);
 
-    lassert_type!("if", cond, Lval::Number(_) | Lval::Boolean(_));
+    lassert_type!("if", cond, Lval::Integer(_) | Lval::Boolean(_));
     lassert_type!("if", on_true, Lval::QExpr(_));
     lassert_type!("if", on_false, Lval::QExpr(_));
 
@@ -845,14 +845,14 @@ pub fn builtin_if(mut lval: Lval, env: &mut SharedEnv) -> Result<Lval> {
     }
 }
 
-/// Returns Lval::Number(1.0) if at least one of the two operands, provided in `lval`, evaluates
+/// Returns Lval::Integer(1.0) if at least one of the two operands, provided in `lval`, evaluates
 /// to true
 pub fn builtin_or(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     lassert_num!("||", lval, 2);
 
     while !lval.is_empty() {
         let cond = lval.pop(0);
-        lassert_type!("or", cond, Lval::Number(_) | Lval::Boolean(_));
+        lassert_type!("or", cond, Lval::Integer(_) | Lval::Boolean(_));
 
         let cond = cond.into_boolean();
         if *cond.as_boolean() {
@@ -863,14 +863,14 @@ pub fn builtin_or(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     Ok(Lval::boolean(false))
 }
 
-/// Returns Lval::Number(1.0) if both of the two operands, provided in `lval`, evaluate
+/// Returns Lval::Integer(1.0) if both of the two operands, provided in `lval`, evaluate
 /// to true
 pub fn builtin_and(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     lassert_num!("&&", lval, 2);
 
     while !lval.is_empty() {
         let cond = lval.pop(0);
-        lassert_type!("and", cond, Lval::Number(_) | Lval::Boolean(_));
+        lassert_type!("and", cond, Lval::Integer(_) | Lval::Boolean(_));
 
         let cond = cond.into_boolean();
         if !*cond.as_boolean() {
@@ -886,7 +886,7 @@ pub fn builtin_not(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     lassert_num!("!", lval, 1);
 
     let cond = lval.pop(0);
-    lassert_type!("!", cond, Lval::Number(_) | Lval::Boolean(_));
+    lassert_type!("!", cond, Lval::Integer(_) | Lval::Boolean(_));
 
     let cond = !cond.into_boolean().as_boolean();
 
@@ -973,7 +973,7 @@ mod tests {
     #[test]
     fn test_builtin_eval() {
         let mut env = LEnv::new_shared();
-        let sexpr = Lval::sexpr().add(Lval::qexpr().add(Lval::number(1)).add(Lval::number(2)));
+        let sexpr = Lval::sexpr().add(Lval::qexpr().add(Lval::integer(1)).add(Lval::integer(2)));
 
         assert!(builtin_eval(sexpr, &mut env).is_err());
 
@@ -981,16 +981,16 @@ mod tests {
         let sexpr = Lval::sexpr().add(
             Lval::qexpr()
                 .add(Lval::symbol("+"))
-                .add(Lval::number(1))
-                .add(Lval::number(2)),
+                .add(Lval::integer(1))
+                .add(Lval::integer(2)),
         );
-        assert_eq!(builtin_eval(sexpr, &mut env), Ok(Lval::number(3)));
+        assert_eq!(builtin_eval(sexpr, &mut env), Ok(Lval::integer(3)));
     }
 
     #[test]
     fn test_builtin_list() {
         let mut env = LEnv::new_shared();
-        let sexpr = Lval::sexpr().add(Lval::number(1)).add(Lval::number(2));
+        let sexpr = Lval::sexpr().add(Lval::integer(1)).add(Lval::integer(2));
 
         // Test that an S-Expression gets converted into a QExpr and becomes a list
         assert_eq!(
@@ -1000,7 +1000,7 @@ mod tests {
 
         // Test that only Lval other than S-Expression of Q-Expression becomes an
         // empty Q-Expression (list)
-        assert_eq!(builtin_list(Lval::number(42), &mut env), Ok(Lval::qexpr()));
+        assert_eq!(builtin_list(Lval::integer(42), &mut env), Ok(Lval::qexpr()));
     }
 
     #[test]
@@ -1009,11 +1009,11 @@ mod tests {
 
         // Test that 'head' return a list that contains the
         // first element
-        let list = Lval::qexpr().add(Lval::number(1)).add(Lval::number(2));
+        let list = Lval::qexpr().add(Lval::integer(1)).add(Lval::integer(2));
         let sexpr = Lval::sexpr().add(list.clone());
         assert_eq!(
             builtin_head(sexpr, &mut env),
-            Ok(Lval::qexpr().add(Lval::number(1)))
+            Ok(Lval::qexpr().add(Lval::integer(1)))
         );
 
         // Test that 'head' return an error if the S-Expression
@@ -1042,9 +1042,9 @@ mod tests {
     fn test_builtin_tail() {
         let mut env = LEnv::new_shared();
         let mut list = Lval::qexpr()
-            .add(Lval::number(1))
-            .add(Lval::number(2))
-            .add(Lval::number(3));
+            .add(Lval::integer(1))
+            .add(Lval::integer(2))
+            .add(Lval::integer(3));
         let sexpr = Lval::sexpr().add(list.clone());
 
         list.pop(0);
@@ -1076,19 +1076,19 @@ mod tests {
     fn test_builtin_join() {
         let mut env = LEnv::new_shared();
         let list1 = Lval::qexpr()
-            .add(Lval::number(1))
-            .add(Lval::number(2))
-            .add(Lval::number(3));
+            .add(Lval::integer(1))
+            .add(Lval::integer(2))
+            .add(Lval::integer(3));
         let list2 = Lval::qexpr()
-            .add(Lval::number(4))
-            .add(Lval::number(5))
-            .add(Lval::number(6));
+            .add(Lval::integer(4))
+            .add(Lval::integer(5))
+            .add(Lval::integer(6));
         let sexpr = Lval::sexpr().add(list1.clone()).add(list2.clone());
 
         let list = list1.join(list2);
         assert_eq!(builtin_join(sexpr, &mut env), Ok(list));
 
-        let sexpr = Lval::sexpr().add(Lval::number(42));
+        let sexpr = Lval::sexpr().add(Lval::integer(42));
         assert!(matches!(
             builtin_join(sexpr, &mut env),
             Err(LispyError::InvalidType("join", _, _))
@@ -1099,15 +1099,15 @@ mod tests {
     fn test_builtin_cons() {
         let mut env = LEnv::new_shared();
         let list = Lval::qexpr()
-            .add(Lval::number(1))
-            .add(Lval::number(2))
-            .add(Lval::number(3));
-        let sexpr = Lval::sexpr().add(Lval::number(1)).add(list.clone());
+            .add(Lval::integer(1))
+            .add(Lval::integer(2))
+            .add(Lval::integer(3));
+        let sexpr = Lval::sexpr().add(Lval::integer(1)).add(list.clone());
 
-        let list = Lval::qexpr().add(Lval::number(1)).join(list);
+        let list = Lval::qexpr().add(Lval::integer(1)).join(list);
         assert_eq!(builtin_cons(sexpr, &mut env), Ok(list));
 
-        let sexpr = Lval::sexpr().add(Lval::number(1));
+        let sexpr = Lval::sexpr().add(Lval::integer(1));
         assert!(matches!(
             builtin_cons(sexpr, &mut env),
             Err(LispyError::InvalidArgNum("cons", 2, _))
@@ -1118,9 +1118,9 @@ mod tests {
     fn test_builtin_init() {
         let mut env = LEnv::new_shared();
         let mut list = Lval::qexpr()
-            .add(Lval::number(1))
-            .add(Lval::number(2))
-            .add(Lval::number(3));
+            .add(Lval::integer(1))
+            .add(Lval::integer(2))
+            .add(Lval::integer(3));
         let sexpr = Lval::sexpr().add(list.clone());
 
         list.pop(list.len() - 1);
@@ -1136,27 +1136,27 @@ mod tests {
     #[test]
     fn test_builtin_ops() {
         let mut env = LEnv::new_shared();
-        let args = Lval::sexpr().add(Lval::number(2)).add(Lval::number(4));
+        let args = Lval::sexpr().add(Lval::integer(2)).add(Lval::integer(4));
 
-        assert_eq!(builtin_add(args.clone(), &mut env), Ok(Lval::number(6)));
-        assert_eq!(builtin_sub(args.clone(), &mut env), Ok(Lval::number(-2)));
-        assert_eq!(builtin_mul(args.clone(), &mut env), Ok(Lval::number(8)));
-        assert_eq!(builtin_div(args.clone(), &mut env), Ok(Lval::number(0)));
-        assert_eq!(builtin_rem(args.clone(), &mut env), Ok(Lval::number(2)));
-        assert_eq!(builtin_pow(args.clone(), &mut env), Ok(Lval::number(16)));
-        assert_eq!(builtin_min(args.clone(), &mut env), Ok(Lval::number(2)));
-        assert_eq!(builtin_max(args.clone(), &mut env), Ok(Lval::number(4)));
+        assert_eq!(builtin_add(args.clone(), &mut env), Ok(Lval::integer(6)));
+        assert_eq!(builtin_sub(args.clone(), &mut env), Ok(Lval::integer(-2)));
+        assert_eq!(builtin_mul(args.clone(), &mut env), Ok(Lval::integer(8)));
+        assert_eq!(builtin_div(args.clone(), &mut env), Ok(Lval::integer(0)));
+        assert_eq!(builtin_rem(args.clone(), &mut env), Ok(Lval::integer(2)));
+        assert_eq!(builtin_pow(args.clone(), &mut env), Ok(Lval::integer(16)));
+        assert_eq!(builtin_min(args.clone(), &mut env), Ok(Lval::integer(2)));
+        assert_eq!(builtin_max(args.clone(), &mut env), Ok(Lval::integer(4)));
 
         assert!(matches!(
             builtin_div(
-                Lval::sexpr().add(Lval::number(1)).add(Lval::number(0)),
+                Lval::sexpr().add(Lval::integer(1)).add(Lval::integer(0)),
                 &mut env
             ),
             Err(LispyError::DivisionByZero)
         ));
         assert!(matches!(
             builtin_rem(
-                Lval::sexpr().add(Lval::number(1)).add(Lval::number(0)),
+                Lval::sexpr().add(Lval::integer(1)).add(Lval::integer(0)),
                 &mut env
             ),
             Err(LispyError::DivisionByZero)
@@ -1168,13 +1168,13 @@ mod tests {
         let mut env = LEnv::new_shared();
         let sexpr = Lval::sexpr()
             .add(Lval::qexpr().add(Lval::symbol("x")))
-            .add(Lval::number(42));
+            .add(Lval::integer(42));
 
         assert_eq!(builtin_def(sexpr, &mut env), Ok(Lval::sexpr()));
 
         let sexpr = Lval::sexpr()
-            .add(Lval::qexpr().add(Lval::number(1)))
-            .add(Lval::number(42));
+            .add(Lval::qexpr().add(Lval::integer(1)))
+            .add(Lval::integer(42));
 
         assert!(matches!(
             builtin_def(sexpr, &mut env),
@@ -1196,7 +1196,7 @@ mod tests {
         // Formals should be a Q-Expression
         assert!(matches!(
             builtin_lambda(
-                Lval::sexpr().add(Lval::number(1)).add(body.clone()),
+                Lval::sexpr().add(Lval::integer(1)).add(body.clone()),
                 &mut env
             ),
             Err(LispyError::InvalidType("\\", _, _))
@@ -1205,7 +1205,7 @@ mod tests {
         // Body should be a Q-Expression
         assert!(matches!(
             builtin_lambda(
-                Lval::sexpr().add(formals.clone()).add(Lval::number(1)),
+                Lval::sexpr().add(formals.clone()).add(Lval::integer(1)),
                 &mut env
             ),
             Err(LispyError::InvalidType("\\", _, _))
@@ -1224,7 +1224,7 @@ mod tests {
     #[test]
     fn test_builtin_ord() {
         let mut env = LEnv::new_shared();
-        let args = Lval::qexpr().add(Lval::number(2)).add(Lval::number(1));
+        let args = Lval::qexpr().add(Lval::integer(2)).add(Lval::integer(1));
 
         assert_eq!(builtin_gt(args.clone(), &mut env), Ok(Lval::boolean(true)));
         assert_eq!(builtin_lt(args.clone(), &mut env), Ok(Lval::boolean(false)));
@@ -1262,7 +1262,7 @@ mod tests {
         );
         assert_eq!(
             builtin_eq(
-                Lval::qexpr().add(Lval::number(5)).add(Lval::number(5)),
+                Lval::qexpr().add(Lval::integer(5)).add(Lval::integer(5)),
                 &mut env
             ),
             Ok(Lval::boolean(true))
@@ -1270,14 +1270,14 @@ mod tests {
 
         assert_eq!(
             builtin_ne(
-                Lval::qexpr().add(Lval::number(1)).add(Lval::number(2)),
+                Lval::qexpr().add(Lval::integer(1)).add(Lval::integer(2)),
                 &mut env
             ),
             Ok(Lval::boolean(true))
         );
         assert_eq!(
             builtin_ne(
-                Lval::qexpr().add(Lval::symbol("x")).add(Lval::number(2)),
+                Lval::qexpr().add(Lval::symbol("x")).add(Lval::integer(2)),
                 &mut env
             ),
             Ok(Lval::boolean(true))
@@ -1301,12 +1301,12 @@ mod tests {
         assert_eq!(
             builtin_if(
                 Lval::qexpr()
-                    .add(Lval::number(true as i64))
-                    .add(Lval::qexpr().add(Lval::number(42)))
+                    .add(Lval::integer(true as i64))
+                    .add(Lval::qexpr().add(Lval::integer(42)))
                     .add(Lval::qexpr()),
                 &mut env
             ),
-            Ok(Lval::number(42))
+            Ok(Lval::integer(42))
         );
     }
 
@@ -1322,8 +1322,8 @@ mod tests {
         assert_eq!(
             builtin_or(
                 Lval::qexpr()
-                    .add(Lval::number(false as i64))
-                    .add(Lval::number(true as i64)),
+                    .add(Lval::integer(false as i64))
+                    .add(Lval::integer(true as i64)),
                 &mut env
             ),
             Ok(Lval::boolean(true))
@@ -1352,8 +1352,8 @@ mod tests {
         assert_eq!(
             builtin_and(
                 Lval::qexpr()
-                    .add(Lval::number(true as i64))
-                    .add(Lval::number(true as i64)),
+                    .add(Lval::integer(true as i64))
+                    .add(Lval::integer(true as i64)),
                 &mut env
             ),
             Ok(Lval::boolean(true))
