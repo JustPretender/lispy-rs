@@ -2,7 +2,7 @@ use rustyline::error::ReadlineError;
 use std::error;
 use std::fmt;
 use std::io;
-use std::num::ParseIntError;
+use std::num::{ParseIntError, TryFromIntError};
 
 /// The error type for Lispy errors that can arise from
 /// parsing, input, and evaluation errors
@@ -30,6 +30,12 @@ pub enum LispyError {
     IoError(String),
     /// Result of "error" built-in
     BuiltinError(String),
+    /// Lispy attempted to raise an integer into negative power
+    NegativeExponent,
+    /// Lispy failed at integral type conversion
+    ConversionError(String),
+    /// Lispy detected integral type overflow
+    Overflow,
 }
 
 impl fmt::Display for LispyError {
@@ -54,6 +60,9 @@ impl fmt::Display for LispyError {
             LispyError::UnboundSymbol(symbol) => write!(f, "Unbound symbol: {}!", symbol),
             LispyError::IoError(e) => write!(f, "IO Error: {}!", e),
             LispyError::BuiltinError(e) => write!(f, "Error: {}!", e),
+            LispyError::NegativeExponent => write!(f, "Can't raise to a negative power!"),
+            LispyError::ConversionError(e) => write!(f, "{}", e),
+            LispyError::Overflow => write!(f, "An overflow occurred!"),
         }
     }
 }
@@ -80,5 +89,11 @@ impl From<ReadlineError> for LispyError {
 impl From<io::Error> for LispyError {
     fn from(err: io::Error) -> LispyError {
         LispyError::IoError(err.to_string())
+    }
+}
+
+impl From<TryFromIntError> for LispyError {
+    fn from(err: TryFromIntError) -> LispyError {
+        LispyError::ConversionError(err.to_string())
     }
 }

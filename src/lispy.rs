@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::fmt;
 use std::fs;
 use std::rc::Rc;
@@ -625,7 +626,7 @@ fn builtin_op(mut lval: Lval, op: &'static str) -> Result<Lval> {
     let mut result = *lval.pop(0).as_integer();
 
     if op == "-" && lval.is_empty() {
-        result = -result;
+        result = -result; // TODO figure out if we need check_neg() here
     }
 
     while !lval.is_empty() {
@@ -633,22 +634,31 @@ fn builtin_op(mut lval: Lval, op: &'static str) -> Result<Lval> {
 
         match op {
             "+" => {
-                result += next;
+                result = result
+                    .checked_add(next)
+                    .ok_or_else(|| LispyError::Overflow)?;
             }
             "-" => {
-                result -= next;
+                result = result
+                    .checked_sub(next)
+                    .ok_or_else(|| LispyError::Overflow)?;
             }
             "*" => {
-                result *= next;
+                result = result
+                    .checked_mul(next)
+                    .ok_or_else(|| LispyError::Overflow)?;
             }
             "/" => {
                 if next == 0 {
                     return Err(LispyError::DivisionByZero);
                 }
-                result /= next;
+                result = result
+                    .checked_div(next)
+                    .ok_or_else(|| LispyError::Overflow)?;
             }
             "^" => {
-                result = i64::pow(result, next as u32); //FIXME check for overflows
+                let next = u32::try_from(next)?;
+                result = i64::checked_pow(result, next).ok_or_else(|| LispyError::Overflow)?;
             }
             "min" => {
                 result = result.min(next);
@@ -660,13 +670,15 @@ fn builtin_op(mut lval: Lval, op: &'static str) -> Result<Lval> {
                 if next == 0 {
                     return Err(LispyError::DivisionByZero);
                 }
-                result %= next;
+                result = result
+                    .checked_rem(next)
+                    .ok_or_else(|| LispyError::Overflow)?;
             }
             _ => unreachable!(),
         };
     }
 
-    Ok(Lval::Integer(result))
+    Ok(Lval::integer(result))
 }
 
 /// Returns a new `Lval` that holds a sum of two numbers provided in `lval`
@@ -1160,6 +1172,26 @@ mod tests {
                 &mut env
             ),
             Err(LispyError::DivisionByZero)
+        ));
+
+        assert!(matches!(
+            builtin_pow(
+                Lval::sexpr()
+                    .add(Lval::integer(1))
+                    .add(Lval::integer(std::i64::MAX)),
+                &mut env
+            ),
+            Err(LispyError::ConversionError(_))
+        ));
+
+        assert!(matches!(
+            builtin_pow(
+                Lval::sexpr()
+                    .add(Lval::integer(std::i64::MAX))
+                    .add(Lval::integer(std::i32::MAX as i64)),
+                &mut env
+            ),
+            Err(LispyError::Overflow)
         ));
     }
 
