@@ -25,6 +25,7 @@ fn build_ast(pair: Pair<Rule>) -> Result<Lval> {
     let rule = pair.as_rule();
     match rule {
         Rule::integer => Ok(Lval::integer(pair.as_str().parse::<i64>()?)),
+        Rule::float => Ok(Lval::float(pair.as_str().parse::<f64>()?)),
         Rule::symbol => Ok(Lval::symbol(pair.as_str())),
         Rule::string => {
             let quoted = pair.as_str();

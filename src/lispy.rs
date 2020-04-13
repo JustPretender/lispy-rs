@@ -264,6 +264,7 @@ pub enum LvalFun {
 pub enum Lval {
     Boolean(bool),
     Integer(i64),
+    Float(f64),
     Symbol(String),
     String(String),
     Fun(LvalFun),
@@ -277,6 +278,7 @@ impl fmt::Display for Lval {
         match &self {
             Lval::Boolean(x) => write!(f, "{}", x),
             Lval::Integer(x) => write!(f, "{}", x),
+            Lval::Float(x) => write!(f, "{}", x),
             Lval::Symbol(sym) => write!(f, "{}", sym),
             Lval::String(string) => write!(f, "\"{}\"", string),
             Lval::Fun(LvalFun::Builtin(builtin)) => write!(f, "<builtin>: {}", builtin.name),
@@ -313,11 +315,11 @@ impl fmt::Debug for Lval {
 }
 
 impl Lval {
-    /// Returns a reference to the underlying number representation if the type is
+    /// Returns the underlying number representation if the type is
     /// `Lval::Integer`. Will panic otherwise.
-    fn as_integer(&self) -> &i64 {
+    fn as_integer(&self) -> i64 {
         match self {
-            Lval::Integer(num) => num,
+            Lval::Integer(num) => *num,
             _ => unreachable!(),
         }
     }
@@ -533,6 +535,30 @@ impl Lval {
             _ => unreachable!(),
         }
     }
+
+    /// Constructs a new `Lval` holding a `f64`
+    pub fn float(val: f64) -> Lval {
+        Lval::Float(val)
+    }
+
+    /// Returns the underlying number representation if the type is
+    /// `Lval::Float`. Returns the underlying integer casted as float
+    /// if the type is `Lval::Integer`. Will panic otherwise.
+    fn as_float(&self) -> f64 {
+        match self {
+            Lval::Float(num) => *num,
+            Lval::Integer(num) => *num as f64,
+            _ => unreachable!(),
+        }
+    }
+
+    /// Returns `true` if the underlying type is `Lval::Float`
+    fn is_float(&self) -> bool {
+        match self {
+            Lval::Float(_) => true,
+            _ => false,
+        }
+    }
 }
 
 /// Built-in functions.
@@ -617,68 +643,120 @@ pub fn builtin_init(mut lval: Lval, _env: &mut SharedEnv) -> Result<Lval> {
     Ok(list)
 }
 
-fn builtin_op(mut lval: Lval, op: &'static str) -> Result<Lval> {
-    for index in 0..lval.len() {
-        let number = lval.peek(index);
-        lassert_type!(op, number, Lval::Integer(_));
-    }
+/// Performs checked integer operations where applicable and returns
+/// the result in `Lval`
+fn integer_op(x: i64, y: i64, op: &'static str) -> Result<Lval> {
+    let result;
 
-    let mut result = *lval.pop(0).as_integer();
-
-    if op == "-" && lval.is_empty() {
-        result = -result; // TODO figure out if we need check_neg() here
-    }
-
-    while !lval.is_empty() {
-        let next = *lval.pop(0).as_integer();
-
-        match op {
-            "+" => {
-                result = result
-                    .checked_add(next)
-                    .ok_or_else(|| LispyError::Overflow)?;
+    match op {
+        "+" => {
+            result = x.checked_add(y).ok_or_else(|| LispyError::Overflow)?;
+        }
+        "-" => {
+            result = x.checked_sub(y).ok_or_else(|| LispyError::Overflow)?;
+        }
+        "*" => {
+            result = x.checked_mul(y).ok_or_else(|| LispyError::Overflow)?;
+        }
+        "^" => {
+            let y = u32::try_from(y)?;
+            result = i64::checked_pow(x, y).ok_or_else(|| LispyError::Overflow)?;
+        }
+        "min" => {
+            result = x.min(y);
+        }
+        "max" => {
+            result = x.max(y);
+        }
+        "%" => {
+            if y == 0 {
+                return Err(LispyError::DivisionByZero);
             }
-            "-" => {
-                result = result
-                    .checked_sub(next)
-                    .ok_or_else(|| LispyError::Overflow)?;
-            }
-            "*" => {
-                result = result
-                    .checked_mul(next)
-                    .ok_or_else(|| LispyError::Overflow)?;
-            }
-            "/" => {
-                if next == 0 {
-                    return Err(LispyError::DivisionByZero);
-                }
-                result = result
-                    .checked_div(next)
-                    .ok_or_else(|| LispyError::Overflow)?;
-            }
-            "^" => {
-                let next = u32::try_from(next)?;
-                result = i64::checked_pow(result, next).ok_or_else(|| LispyError::Overflow)?;
-            }
-            "min" => {
-                result = result.min(next);
-            }
-            "max" => {
-                result = result.max(next);
-            }
-            "%" => {
-                if next == 0 {
-                    return Err(LispyError::DivisionByZero);
-                }
-                result = result
-                    .checked_rem(next)
-                    .ok_or_else(|| LispyError::Overflow)?;
-            }
-            _ => unreachable!(),
-        };
+            result = x.checked_rem(y).ok_or_else(|| LispyError::Overflow)?;
+        }
+        _ => unreachable!(),
     }
 
     Ok(Lval::integer(result))
+}
+
+/// Performs floating point operations where applicable and returns
+/// the result in `Lval`
+fn float_op(x: f64, y: f64, op: &'static str) -> Result<Lval> {
+    let result;
+
+    match op {
+        "+" => {
+            result = x + y;
+        }
+        "-" => {
+            result = x - y;
+        }
+        "*" => {
+            result = x * y;
+        }
+        "/" => {
+            if y == 0.0f64 {
+                return Err(LispyError::DivisionByZero);
+            } else {
+                result = x / y;
+            }
+        }
+        "^" => {
+            result = f64::powf(x, y.into());
+        }
+        "min" => result = x.min(y),
+        "max" => result = x.max(y),
+        "%" => {
+            if y == 0.0f64 {
+                return Err(LispyError::DivisionByZero);
+            } else {
+                result = x % y;
+            }
+        }
+        _ => unreachable!(),
+    }
+
+    Ok(Lval::float(result))
+}
+
+fn builtin_op(mut lval: Lval, op: &'static str) -> Result<Lval> {
+    // We can only perform integer operations if:
+    // - it's not a division;
+    // - all operands are integers.
+    let mut int_op = if op == "/" { false } else { true };
+
+    for index in 0..lval.len() {
+        let number = lval.peek(index);
+        lassert_type!(op, number, Lval::Integer(_) | Lval::Float(_));
+
+        // If it least one argument is float - we should work with float.
+        if number.is_float() {
+            int_op = false;
+        }
+    }
+
+    let mut result = lval.pop(0);
+
+    if op == "-" && lval.is_empty() {
+        if int_op {
+            Lval::integer(-result.as_integer())
+        } else {
+            Lval::float(-result.as_float())
+        };
+    }
+
+    while !lval.is_empty() {
+        let next = lval.pop(0);
+
+        result = if int_op {
+            integer_op(result.as_integer(), next.as_integer(), op)?
+        } else {
+            float_op(result.as_float(), next.as_float(), op)?
+        }
+    }
+
+    Ok(result)
 }
 
 /// Returns a new `Lval` that holds a sum of two numbers provided in `lval`
@@ -1150,14 +1228,26 @@ mod tests {
         let mut env = LEnv::new_shared();
         let args = Lval::sexpr().add(Lval::integer(2)).add(Lval::integer(4));
 
+        // integers
         assert_eq!(builtin_add(args.clone(), &mut env), Ok(Lval::integer(6)));
         assert_eq!(builtin_sub(args.clone(), &mut env), Ok(Lval::integer(-2)));
         assert_eq!(builtin_mul(args.clone(), &mut env), Ok(Lval::integer(8)));
-        assert_eq!(builtin_div(args.clone(), &mut env), Ok(Lval::integer(0)));
+        assert_eq!(builtin_div(args.clone(), &mut env), Ok(Lval::float(0.5)));
         assert_eq!(builtin_rem(args.clone(), &mut env), Ok(Lval::integer(2)));
         assert_eq!(builtin_pow(args.clone(), &mut env), Ok(Lval::integer(16)));
         assert_eq!(builtin_min(args.clone(), &mut env), Ok(Lval::integer(2)));
         assert_eq!(builtin_max(args.clone(), &mut env), Ok(Lval::integer(4)));
+
+        // float
+        let args = Lval::sexpr().add(Lval::integer(2)).add(Lval::float(4.0));
+        assert_eq!(builtin_add(args.clone(), &mut env), Ok(Lval::float(6.0)));
+        assert_eq!(builtin_sub(args.clone(), &mut env), Ok(Lval::float(-2.0)));
+        assert_eq!(builtin_mul(args.clone(), &mut env), Ok(Lval::float(8.0)));
+        assert_eq!(builtin_div(args.clone(), &mut env), Ok(Lval::float(0.5)));
+        assert_eq!(builtin_rem(args.clone(), &mut env), Ok(Lval::float(2.0)));
+        assert_eq!(builtin_pow(args.clone(), &mut env), Ok(Lval::float(16.0)));
+        assert_eq!(builtin_min(args.clone(), &mut env), Ok(Lval::float(2.0)));
+        assert_eq!(builtin_max(args.clone(), &mut env), Ok(Lval::float(4.0)));
 
         assert!(matches!(
             builtin_div(

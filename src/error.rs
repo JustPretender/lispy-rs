@@ -2,7 +2,7 @@ use rustyline::error::ReadlineError;
 use std::error;
 use std::fmt;
 use std::io;
-use std::num::{ParseIntError, TryFromIntError};
+use std::num::{ParseFloatError, ParseIntError, TryFromIntError};
 
 /// The error type for Lispy errors that can arise from
 /// parsing, input, and evaluation errors
@@ -10,6 +10,8 @@ use std::num::{ParseIntError, TryFromIntError};
 pub enum LispyError {
     /// Failed to parse an integer
     ParseInt(ParseIntError),
+    /// Failed to parse a float
+    ParseFloat(ParseFloatError),
     /// Readline crate error
     Readline(String),
     /// Failed to tokenize input
@@ -42,6 +44,7 @@ impl fmt::Display for LispyError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             LispyError::ParseInt(e) => e.fmt(f),
+            LispyError::ParseFloat(e) => e.fmt(f),
             LispyError::Readline(e) => write!(f, "{}", e),
             LispyError::Grammar(e) => write!(f, "Grammar: {}", e),
             LispyError::InvalidArgNum(func, expected, given) => write!(
@@ -77,6 +80,12 @@ impl error::Error for LispyError {
 impl From<ParseIntError> for LispyError {
     fn from(err: ParseIntError) -> LispyError {
         LispyError::ParseInt(err)
+    }
+}
+
+impl From<ParseFloatError> for LispyError {
+    fn from(err: ParseFloatError) -> LispyError {
+        LispyError::ParseFloat(err)
     }
 }
 
