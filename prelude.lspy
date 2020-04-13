@@ -238,3 +238,50 @@
     { (== n 1) 1 }
     { otherwise (+ (fib (- n 1)) (fib (- n 2))) }
 })
+
+;;; Lisp fundamentals
+; car
+(fun {car l} {
+  (eval (head l))
+})
+
+;;; Trees
+; Binary Tree
+(fun {btree-make root left right} {
+  (list root left right)
+})
+(fun {btree-root tree} {
+  (fst tree)
+})
+(fun {btree-left tree} {
+  (snd tree)
+})
+(fun {btree-right tree} {
+  (trd tree)
+})
+(fun {btree-insert tree x} {
+  select
+    {(== tree nil) (btree-make x nil nil)}
+    {(== x (btree-root tree)) tree}
+    {(< x (btree-root tree))
+        (btree-make (btree-root tree)
+                    (btree-insert (btree-left tree) x)
+                    (btree-right tree))
+    }
+    {(> x (btree-root tree))
+        (btree-make (btree-root tree)
+                    (btree-left tree)
+                    (btree-insert (btree-right tree) x))
+    }
+})
+(fun {btree-contains tree x} {
+  select
+    {(== tree nil) false}
+    {(== x (btree-root tree)) true}
+    {(< x (btree-root tree))
+        (btree-contains (btree-left tree) x)
+    }
+    {(> x (btree-root tree))
+        (btree-contains (btree-right tree) x)
+    }
+})
