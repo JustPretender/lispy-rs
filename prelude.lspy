@@ -285,3 +285,26 @@
         (btree-contains (btree-right tree) x)
     }
 })
+
+;;; Math
+; abs
+(fun {abs x} {if (< x 0) {-x} {x}})
+; average
+(fun {average x y} {/ (+ x y) 2})
+; square
+(fun {square x} {* x x})
+; Sqrt (Newthon method). Taken from SICP, ch.1.1.8
+(fun {sqrt x} {
+     let {
+         do
+         (fun {good-enough guess} {< (abs (- (square guess) x)) 0.001})
+         (fun {improve guess} {average guess (/ x guess)})
+         (fun {sqrt-iter guess} {
+              if (good-enough guess)
+                 {guess}
+                 {sqrt-iter (improve guess)}
+         })
+         (sqrt-iter 1.0)
+     }
+})
+
