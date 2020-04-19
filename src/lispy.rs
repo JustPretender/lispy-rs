@@ -876,12 +876,16 @@ fn builtin_ord(mut lval: Lval, ord: &'static str) -> Result<Lval> {
     lassert_num!(ord, lval, 2);
 
     let first = lval.pop(0);
-    lassert_type!(ord, first, Lval::Integer(_));
+    lassert_type!(ord, first, Lval::Integer(_) | Lval::Float(_));
     let second = lval.pop(0);
-    lassert_type!(ord, second, Lval::Integer(_));
+    lassert_type!(ord, second, Lval::Integer(_) | Lval::Float(_));
 
-    let first = first.as_integer();
-    let second = second.as_integer();
+    // It's "okay" to cast integer to float in this case as f64 implements
+    // PartialOrd.
+    // TODO Revisit this strategy after I read:
+    // https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
+    let first = first.as_float();
+    let second = second.as_float();
 
     match ord {
         ">" => Ok(Lval::boolean(first > second)),

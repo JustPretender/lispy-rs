@@ -144,7 +144,7 @@
   I decided to play with [[https://docs.rs/criterion/0.3.1/criterion/][Criterion]] to benchmark my implementation(s) of the =Lval= type. It's in a very infant state (even more than the rest of the project).
 
 * TODOs [1/9]
-  - [X] Add floating point support. Added. Testing now;
+  - [X] Add floating point support. Added. Testing now. I still have to read https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html and make sure that I'm not missing something important;
   - [ ] At the moment logic around integers is a bit flaky. I used the biggest signed integer type to represent number, but this has to be revisited too;
   - [ ] Figure out how to use the /=/ operator. The book doesn't really covers that with examples (this actually comes later).
   - [ ] I skipped certain bonus points to speed up the development. Some of them are very interesting and should be added;
