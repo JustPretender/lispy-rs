@@ -740,9 +740,9 @@ fn builtin_op(mut lval: Lval, op: &'static str) -> Result<Lval> {
 
     if op == "-" && lval.is_empty() {
         if int_op {
-            Lval::integer(-result.as_integer())
+            result = Lval::integer(-result.as_integer());
         } else {
-            Lval::float(-result.as_float())
+            result = Lval::float(-result.as_float());
         };
     }
 
@@ -1237,6 +1237,10 @@ mod tests {
         assert_eq!(builtin_pow(args.clone(), &mut env), Ok(Lval::integer(16)));
         assert_eq!(builtin_min(args.clone(), &mut env), Ok(Lval::integer(2)));
         assert_eq!(builtin_max(args.clone(), &mut env), Ok(Lval::integer(4)));
+        assert_eq!(
+            builtin_sub(Lval::sexpr().add(Lval::integer(-2)), &mut env),
+            Ok(Lval::integer(2))
+        );
 
         // float
         let args = Lval::sexpr().add(Lval::integer(2)).add(Lval::float(4.0));
@@ -1248,6 +1252,10 @@ mod tests {
         assert_eq!(builtin_pow(args.clone(), &mut env), Ok(Lval::float(16.0)));
         assert_eq!(builtin_min(args.clone(), &mut env), Ok(Lval::float(2.0)));
         assert_eq!(builtin_max(args.clone(), &mut env), Ok(Lval::float(4.0)));
+        assert_eq!(
+            builtin_sub(Lval::sexpr().add(Lval::float(-2.0)), &mut env),
+            Ok(Lval::float(2.0))
+        );
 
         assert!(matches!(
             builtin_div(
